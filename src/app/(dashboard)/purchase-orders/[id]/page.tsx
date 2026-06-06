@@ -1,22 +1,31 @@
 "use client";
+import { use } from "react";
 import { Button } from "@/components/primitives/button/button";
 import { PageHeader } from "@/components/layout/page-header/page-header";
 import { DetailPanel, DetailRow } from "@/components/data-display/detail-panel/detail-panel";
 import { StatusBadge } from "@/components/data-display/status-badge/status-badge";
 import { Card, CardHeader, CardBody } from "@/components/cards/card/card";
-import { mockPurchaseOrders, mockQuotations, getVendorName } from "@/lib/mock-data";
+import { LoadingSpinner } from "@/components/feedback/loading-spinner/loading-spinner";
+import { usePurchaseOrder } from "@/features/purchase-orders/hooks/use-purchase-orders";
 import { Download } from "lucide-react";
 
-export default function PoDetailPage() {
-  const po = mockPurchaseOrders[0];
-  const q = mockQuotations.find((q) => q.id === po.quotation_id);
+export default function PoDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { purchaseOrder: po, isLoading, error } = usePurchaseOrder(id);
+
+  if (isLoading) return <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>;
+  if (error || !po) return <div className="p-8 text-center text-[var(--color-error)]">{error || "Purchase order not found"}</div>;
+
+  const vendorName = (po.quotations as Record<string, unknown>)?.vendors;
+  const price = (po.quotations as Record<string, unknown>)?.price;
+
   return (
     <div>
       <PageHeader title={po.po_number} backHref="/purchase-orders" actions={<StatusBadge status={po.status} />} />
       <DetailPanel className="mb-6">
         <DetailRow label="PO Number" value={po.po_number} mono />
-        <DetailRow label="Vendor" value={q ? getVendorName(q.vendor_id) : "—"} />
-        <DetailRow label="Amount" value={q ? "₹" + q.price.toLocaleString("en-IN") : "—"} mono />
+        <DetailRow label="Vendor" value={typeof vendorName === "object" && vendorName !== null && "company_name" in vendorName ? (vendorName as { company_name: string }).company_name : "—"} />
+        <DetailRow label="Amount" value={price != null ? `₹${(price as number).toLocaleString("en-IN")}` : "—"} mono />
         <DetailRow label="Status" value={<StatusBadge status={po.status} />} />
         <DetailRow label="Generated" value={new Date(po.generated_at).toLocaleDateString("en-IN")} />
       </DetailPanel>

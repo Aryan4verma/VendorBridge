@@ -1,21 +1,19 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { poService, type PoFilters } from "@/features/purchase-orders/services/po.service";
-import type { PurchaseOrder } from "@/types/database";
+import { purchaseOrderService, type PoWithDetails, type PoFilters } from "@/features/purchase-orders/services/purchase-order.service";
 
 export function usePurchaseOrders(filters?: PoFilters) {
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PoWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const filtersKey = JSON.stringify(filters);
 
-  const fetchPurchaseOrders = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       const parsed = filtersKey ? (JSON.parse(filtersKey) as PoFilters) : undefined;
-      const data = await poService.getAll(parsed);
+      const data = await purchaseOrderService.getAll(parsed);
       setPurchaseOrders(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch purchase orders");
@@ -24,9 +22,29 @@ export function usePurchaseOrders(filters?: PoFilters) {
     }
   }, [filtersKey]);
 
-  useEffect(() => {
-    fetchPurchaseOrders();
-  }, [fetchPurchaseOrders]);
+  useEffect(() => { fetchData(); }, [fetchData]);
+  return { purchaseOrders, isLoading, error, refetch: fetchData };
+}
 
-  return { purchaseOrders, isLoading, error, refetch: fetchPurchaseOrders };
+export function usePurchaseOrder(id?: string) {
+  const [purchaseOrder, setPurchaseOrder] = useState<PoWithDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!id) { setPurchaseOrder(null); setIsLoading(false); return; }
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await purchaseOrderService.getById(id);
+      setPurchaseOrder(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch purchase order");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+  return { purchaseOrder, isLoading, error, refetch: fetchData };
 }

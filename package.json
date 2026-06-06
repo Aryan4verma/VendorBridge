@@ -10,7 +10,8 @@
     "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed": "echo Run SEED_DEMO_DATA.sql in Supabase SQL Editor"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

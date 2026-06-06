@@ -1,23 +1,30 @@
 "use client";
+import { use } from "react";
 import { Button } from "@/components/primitives/button/button";
 import { PageHeader } from "@/components/layout/page-header/page-header";
 import { DetailPanel, DetailRow } from "@/components/data-display/detail-panel/detail-panel";
 import { StatusBadge } from "@/components/data-display/status-badge/status-badge";
 import { Card, CardHeader, CardBody } from "@/components/cards/card/card";
-import { mockInvoices } from "@/lib/mock-data";
+import { LoadingSpinner } from "@/components/feedback/loading-spinner/loading-spinner";
+import { useInvoice } from "@/features/invoices/hooks/use-invoices";
 import { Download, Mail } from "lucide-react";
 
-export default function InvoiceDetailPage() {
-  const inv = mockInvoices[0];
+export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { invoice: inv, isLoading, error } = useInvoice(id);
+
+  if (isLoading) return <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>;
+  if (error || !inv) return <div className="p-8 text-center text-[var(--color-error)]">{error || "Invoice not found"}</div>;
+
   return (
     <div>
       <PageHeader title={inv.invoice_number} backHref="/invoices" actions={<StatusBadge status={inv.status} />} />
       <DetailPanel className="mb-6">
         <DetailRow label="Invoice Number" value={inv.invoice_number} mono />
-        <DetailRow label="PO Number" value="PO-2505-0001" mono />
-        <DetailRow label="Subtotal" value={`₹${inv.subtotal?.toLocaleString("en-IN")}`} mono />
-        <DetailRow label="Tax" value={`₹${inv.tax?.toLocaleString("en-IN")}`} mono />
-        <DetailRow label="Total" value={`₹${inv.total?.toLocaleString("en-IN")}`} mono />
+        <DetailRow label="PO Number" value={(inv.purchase_orders as Record<string, unknown>)?.po_number as string ?? "—"} mono />
+        <DetailRow label="Subtotal" value={inv.subtotal != null ? `₹${inv.subtotal.toLocaleString("en-IN")}` : "—"} mono />
+        <DetailRow label="Tax" value={inv.tax != null ? `₹${inv.tax.toLocaleString("en-IN")}` : "—"} mono />
+        <DetailRow label="Total" value={inv.total != null ? `₹${inv.total.toLocaleString("en-IN")}` : "—"} mono />
         <DetailRow label="Status" value={<StatusBadge status={inv.status} />} />
       </DetailPanel>
       <Card>

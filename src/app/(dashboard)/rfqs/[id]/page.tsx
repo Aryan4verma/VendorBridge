@@ -12,12 +12,15 @@ import { useRfq } from "@/features/rfqs/hooks/use-rfq";
 import { useQuotations } from "@/features/quotations/hooks/use-quotations";
 import { useToast } from "@/providers/toast-provider";
 import { rfqService } from "@/features/rfqs/services/rfq.service";
-import { Sparkles } from "lucide-react";
+import { approvalService } from "@/features/approvals/services/approval.service";
+import { useAuth } from "@/providers/auth-provider";
+import { Sparkles, ShieldCheck } from "lucide-react";
 
 export default function RfqDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { rfq, isLoading, error } = useRfq(id);
   const { quotations } = useQuotations({ rfq_id: id });
 
@@ -39,6 +42,31 @@ export default function RfqDetailPage({ params }: { params: Promise<{ id: string
       window.location.reload();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed to update status", "error");
+    }
+  };
+
+  const handleRequestApproval = async (quotationId: string) => {
+    if (!user?.id) {
+      toast("You must be logged in", "error");
+      return;
+    }
+    try {
+      const existing = await approvalService.getByQuotation(quotationId);
+      if (existing) {
+        toast("Approval already requested for this quotation", "error");
+        return;
+      }
+      await approvalService.create({
+        quotation_id: quotationId,
+        approver_id: null,
+        status: "pending",
+        remarks: null,
+        approved_at: null,
+      });
+      toast("Approval requested", "success");
+      window.location.reload();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to request approval", "error");
     }
   };
 
@@ -115,6 +143,7 @@ export default function RfqDetailPage({ params }: { params: Promise<{ id: string
                   <TableHead>Notes</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Submitted</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -128,6 +157,14 @@ export default function RfqDetailPage({ params }: { params: Promise<{ id: string
                     <TableCell><StatusBadge status={q.status} /></TableCell>
                     <TableCell className="data-mono text-[var(--color-on-surface-variant)]">
                       {new Date(q.submitted_at).toLocaleDateString("en-IN")}
+                    </TableCell>
+                    <TableCell>
+                      {(q.status === "submitted" || q.status === "shortlisted") && (
+                        <Button size="sm" variant="secondary" onClick={() => handleRequestApproval(q.id)}>
+                          <ShieldCheck className="h-3 w-3" />
+                          Request Approval
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
