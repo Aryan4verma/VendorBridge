@@ -1,5 +1,6 @@
 "use client";
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/primitives/button/button";
 import { Input } from "@/components/primitives/input/input";
 import { Textarea } from "@/components/primitives/textarea/textarea";
@@ -9,37 +10,75 @@ import { Card, CardBody } from "@/components/cards/card/card";
 import { FormField } from "@/components/forms/form-field/form-field";
 import { FormSection } from "@/components/forms/form-section/form-section";
 import { FormActions } from "@/components/forms/form-actions/form-actions";
-import { FileUpload } from "@/components/forms/file-upload/file-upload";
-import { MultiSelect } from "@/components/primitives/multi-select/multi-select";
-
-const vendorOptions = [
-  { label: "TechNova Solutions", value: "v1" },
-  { label: "GlobalTech Industries", value: "v2" },
-  { label: "OfficePro Supplies", value: "v3" },
-  { label: "DigitalEdge Systems", value: "v4" },
-  { label: "CloudFirst Technologies", value: "v5" },
-];
+import { useToast } from "@/providers/toast-provider";
+import { rfqService } from "@/features/rfqs/services/rfq.service";
 
 export default function CreateRfqPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    quantity: "",
+    deadline: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title || !form.description || !form.quantity || !form.deadline) {
+      toast("Please fill in all required fields", "error");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await rfqService.create({
+        title: form.title,
+        description: form.description,
+        quantity: Number(form.quantity),
+        deadline: form.deadline,
+        status: "draft",
+        attachment_url: null,
+        created_by: null,
+      });
+      toast("RFQ created successfully", "success");
+      router.push("/rfqs");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to create RFQ", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div>
-      <PageHeader title="Create RFQ" backHref="/rfqs" actions={<Link href="/rfqs/new/ai"><Button variant="secondary">AI Generator</Button></Link>} />
+      <PageHeader title="Create RFQ" backHref="/rfqs" />
       <Card>
         <CardBody>
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <FormSection title="RFQ Details">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField label="Title" required><Input placeholder="RFQ title" /></FormField>
-                <FormField label="Quantity" required><Input type="number" placeholder="0" /></FormField>
-                <FormField label="Deadline" required><DatePicker /></FormField>
+                <FormField label="Title" required>
+                  <Input placeholder="RFQ title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} disabled={isLoading} />
+                </FormField>
+                <FormField label="Quantity" required>
+                  <Input type="number" placeholder="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} disabled={isLoading} />
+                </FormField>
+                <FormField label="Deadline" required>
+                  <DatePicker value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} disabled={isLoading} />
+                </FormField>
               </div>
-              <FormField label="Description" required><Textarea placeholder="Describe your requirement..." rows={4} /></FormField>
+              <FormField label="Description" required>
+                <Textarea placeholder="Describe your requirement..." rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} disabled={isLoading} />
+              </FormField>
             </FormSection>
-            <FormSection title="Attachments"><FileUpload /></FormSection>
-            <FormSection title="Assign Vendors"><MultiSelect options={vendorOptions} selected={[]} onChange={() => {}} placeholder="Select vendors..." /></FormSection>
             <FormActions>
-              <Button variant="secondary" type="button">Cancel</Button>
-              <Button type="submit">Create RFQ</Button>
+              <Button variant="secondary" type="button" onClick={() => router.push("/rfqs")} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Creating..." : "Create RFQ"}
+              </Button>
             </FormActions>
           </form>
         </CardBody>
