@@ -12,6 +12,7 @@ import { useRfq } from "@/features/rfqs/hooks/use-rfq";
 import { useQuotations } from "@/features/quotations/hooks/use-quotations";
 import { useToast } from "@/providers/toast-provider";
 import { rfqService } from "@/features/rfqs/services/rfq.service";
+import { Sparkles } from "lucide-react";
 
 export default function RfqDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -58,6 +59,14 @@ export default function RfqDetailPage({ params }: { params: Promise<{ id: string
         actions={
           <div className="flex gap-2">
             <StatusBadge status={rfq.status} />
+            {quotations.length > 0 && (
+              <Link href={`/rfqs/${id}/recommend`}>
+                <Button variant="secondary">
+                  <Sparkles className="h-4 w-4" />
+                  AI Recommend
+                </Button>
+              </Link>
+            )}
             {rfq.status === "open" && (
               <Link href={`/rfqs/${id}/quote`}>
                 <Button>Submit Quotation</Button>

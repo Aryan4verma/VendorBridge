@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { aiService } from "@/features/ai/services/ai.service";
+import { aiService, type AiRecommendationResult } from "@/features/ai/services/ai.service";
 import type { AiRecommendation } from "@/types/database";
 
 export function useAi(rfqId?: string) {
@@ -29,5 +29,21 @@ export function useAi(rfqId?: string) {
     fetchRecommendations();
   }, [fetchRecommendations]);
 
-  return { recommendations, isLoading, error, refetch: fetchRecommendations };
+  const recommend = useCallback(async (): Promise<AiRecommendationResult & { saved: AiRecommendation } | null> => {
+    if (!rfqId) return null;
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await aiService.recommend(rfqId);
+      await fetchRecommendations();
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate recommendation");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [rfqId, fetchRecommendations]);
+
+  return { recommendations, isLoading, error, refetch: fetchRecommendations, recommend };
 }
