@@ -32,14 +32,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ toasts, toast, dismiss }}>{children}</ToastContext.Provider>
+    <ToastContext.Provider value={{ toasts, toast, dismiss }}>
+      {children}
+    </ToastContext.Provider>
   );
 }
 
-export function useToast() {
+export function useToast(): ToastContextType {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
+    // Return safe defaults when used outside provider (e.g., during SSR)
+    return { toasts: [], toast: () => {}, dismiss: () => {} };
   }
   return context;
 }

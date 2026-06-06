@@ -1,4 +1,2 @@
 "use client";
-export function useAuth() {
-  return { data: null, isLoading: false };
-}
+export { useAuth } from "@/providers/auth-provider";
